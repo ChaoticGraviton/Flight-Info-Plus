@@ -16,5 +16,6 @@ namespace Assets.Scripts
         protected override void InitializeSettings()
         {
         }
+
     }
 }

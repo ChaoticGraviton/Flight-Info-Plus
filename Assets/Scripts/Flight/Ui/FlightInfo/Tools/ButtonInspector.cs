@@ -102,21 +102,11 @@ public class ButtonInspector
         _groupModelInspector = null;
     }
 
-    public void RemoveGroups()
-    {
-        if (_inspectorModel.Items.Count < 1)
-        {
-            Debug.Log("Cannot remove group(s), _inspectorModel does not contain any items.");
-            return;
-        }
-        _inspectorModel.RemoveGroup((GroupModel)_inspectorModel.Items[0]);
-    }
-
     public void RefreshItems()
     {
         foreach (ItemModel item in _ItemModels)
             _inspectorModel.Add(item);
-        _inspectorModel.Add(Mod.Instance.flightInfoPlus.InspectorSpacerModel);
+        _inspectorModel.Add(Mod.Instance.FlightInfoPlus.InspectorSpacerModel);
         if (_visible)
         {
             InspectorVisible = !InspectorVisible;
