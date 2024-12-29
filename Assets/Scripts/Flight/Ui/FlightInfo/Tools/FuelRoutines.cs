@@ -7,7 +7,7 @@ namespace Assets.Scripts.Flight.Ui.FlightInfo.Tools
     {
         public IEnumerator ConfigFuelMonitors()
         {
-            yield return new WaitForSeconds(Time.deltaTime * 5);
+            yield return new WaitForSeconds(Time.deltaTime * 10);
             Mod.Instance.FlightInfoPlus.FuelInfo.ConfigFuelMonitors();
         }
     }
