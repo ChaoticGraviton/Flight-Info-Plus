@@ -1,80 +1,76 @@
+using System;
+using System.IO;
+using HarmonyLib;
+using ModApi.Ui.Inspector;
+using UnityEngine;
+
 namespace Assets.Scripts
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using System.Xml.Linq;
-    using System.Xml.Serialization;
-    using Assets.Scripts.Design.Tools.Fuselage;
-    using Assets.Scripts.Flight;
-    using Assets.Scripts.Flight.GameView;
-    using Assets.Scripts.Flight.GameView.UI;
-    using Assets.Scripts.Flight.GameView.UI.Inspector;
-    using Assets.Scripts.Flight.MapView.UI;
-    using Assets.Scripts.Flight.Sim;
-    using Assets.Scripts.Flight.UI;
-    using HarmonyLib;
-    using ModApi;
-    using ModApi.Common;
-    using ModApi.Common.DebugUtils;
-    using ModApi.Flight;
-    using ModApi.Flight.GameView;
-    using ModApi.Mods;
-    using ModApi.Scenes.Events;
-    using ModApi.Ui;
-    using ModApi.Ui.Inspector;
-    using UI.Xml;
-    using UnityEngine;
-
     public class Mod : ModApi.Mods.GameMod
     {
-
         public static Mod Instance { get; } = GetModInstance<Mod>();
+        public readonly string[] _massTypes = { "g", "kg", "t", "kt" };
+        public readonly string[] _energyTypes = { "J", "kJ", "MJ", "GJ" };
+
+        public FlightInfoPlus FlightInfoPlus;
+        public MapInfoPlus MapInfoPlus;
 
         protected override void OnModInitialized()
         {
-            Harmony harmony = new Harmony("FlightInfo+");
-            harmony.PatchAll();
-            Game.Instance.UserInterface.AddBuildInspectorPanelAction(InspectorIds.FlightView, OnBuildFlightViewInspectorPanel);
-            Game.Instance.SceneManager.SceneLoaded += OnSceneLoaded;
+            try
+            {
+                HarmonyLoader.LoadHarmony();
+                FlightInfoPlus = new FlightInfoPlus();
+                MapInfoPlus = new MapInfoPlus();
+                DisableStockInspectors();
+
+                Game.Instance.UserInterface.AddBuildInspectorPanelAction(InspectorIds.FlightView, OnBuildFlightViewInspectorPanel);
+                //Game.Instance.UserInterface.AddBuildInspectorPanelAction(InspectorIds.MapView, OnBuildMapViewInspectorPanel);
+            }
+            catch (Exception e)
+            {
+                string s = $"Mod {Mod.ModInfo.Name} failed to initalize. Verify all depencencies installed and enabled";
+                Game.Instance.UserInterface.CreateMessageDialog(s);
+                Debug.LogException(e);
+                throw new FileNotFoundException(s);
+            }
         }
 
-        private void OnSceneLoaded(object sender, SceneEventArgs e)
+        private void DisableStockInspectors()
         {
-            if (Game.InFlightScene)
-            {
-                if (FlightInfoPlus.FlightInfoPanel != null) FlightInfoPlus.FlightInfoPanel.Close();
-            }
-            else FlightInfoPlus._flightInfoPlusInspector = null;
+            var settings = Game.Instance.Settings;
+            settings.Game.Flight.ShowFlightViewInspector.UpdateAndCommit(false);
         }
 
         private void OnBuildFlightViewInspectorPanel(BuildInspectorPanelRequest request)
         {
-            FlightInfoPlus.FlightInfoGroups = request.Model.Groups;
-            FlightInfoPlus.FlightInfoPanel = request.Model.Panel;
+            Debug.Log("Flight Info Build");
+            FlightInfoPlus.Initialize(request.Model);
         }
 
-        [HarmonyPatch(typeof(NavPanelController))]
-        class UpdateNavPanelPatch
+        private void OnBuildMapViewInspectorPanel(BuildInspectorPanelRequest request)
         {
-            public static XmlElement flightInfoButton;
+            Debug.Log("Map Info Build");
+            //mapInfoPlus.Initialize(request.Model);
+        }
 
-            [HarmonyPatch("OnToggleFlightInspectorClicked")]
-            static bool Prefix(NavPanelController __instance, XmlElement toggle)
-            {
-                flightInfoButton = __instance.xmlLayout.GetElementById("toggle-flight-inspector");
-                flightInfoButton.Tooltip = "Toggle Flight Info+ Panel";
-                FlightInfoPlus.FlightInfoButton = flightInfoButton;
-                FlightInfoPlus.OnFlightInfoClicked();
-                return false;
-            }
+        public void UpdateInspectorPrefs(IInspectorPanel panel, Vector2 visibleState)
+        {
+            Game.Instance.Settings.UserPrefs.SetVector2(panel.Model.UserPrefsId + ".Visible", visibleState);
+            Game.Instance.Settings.Save();
+        }
 
-            [HarmonyPatch("UpdatePanel")]
-            static void Postfix(NavPanelController __instance, CraftNode craftNode)
-            {
-                Traverse.Create(__instance).Method("UpdateButton", flightInfoButton, FlightInfoPlus.Visible).GetValue();
-            }
+        public string FormatFuel(double totalFuel, string[] format)
+        {
+            // Converts into lowest unit type
+            totalFuel *= 1e3;
+            if (Math.Abs(totalFuel) > 1e9)
+                return (totalFuel * 1e-9).ToString("0.00") + format[3];
+            else if (Math.Abs(totalFuel) > 1e6)
+                return (totalFuel * 1e-6).ToString("0.00") + format[2];
+            else if (Math.Abs(totalFuel) > 1e3)
+                return (totalFuel * 1e-3).ToString("0.00") + format[1];
+            return totalFuel.ToString("0.00") + format[0];
         }
     }
 }

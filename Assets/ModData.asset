@@ -15,7 +15,9 @@ MonoBehaviour:
   _assemblies:
   - Flight Info Plus.dll
   _author: ChaoticGraviton
-  _description: 
+  _description: "Flight Info Plus (FI+) is a modular overhaul of the default Flight
+    Info inspector, designed for enhanced flexibility and user control. \n\nRequired
+    Dependency:\nJuno Harmony"
   _loadPriority: 9999
   _name: Flight Info Plus
   _otherAssets: []
