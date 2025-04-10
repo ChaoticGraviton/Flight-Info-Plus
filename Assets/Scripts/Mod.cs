@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using HarmonyLib;
 using ModApi.Ui.Inspector;
 using UnityEngine;
@@ -16,14 +17,23 @@ namespace Assets.Scripts
 
         protected override void OnModInitialized()
         {
-            Harmony harmony = new("FlightInfo+");
-            harmony.PatchAll();
-            FlightInfoPlus = new FlightInfoPlus();
-            MapInfoPlus = new MapInfoPlus();
-            DisableStockInspectors();
+            try
+            {
+                HarmonyLoader.LoadHarmony();
+                FlightInfoPlus = new FlightInfoPlus();
+                MapInfoPlus = new MapInfoPlus();
+                DisableStockInspectors();
 
-            Game.Instance.UserInterface.AddBuildInspectorPanelAction(InspectorIds.FlightView, OnBuildFlightViewInspectorPanel);
-            //Game.Instance.UserInterface.AddBuildInspectorPanelAction(InspectorIds.MapView, OnBuildMapViewInspectorPanel);
+                Game.Instance.UserInterface.AddBuildInspectorPanelAction(InspectorIds.FlightView, OnBuildFlightViewInspectorPanel);
+                //Game.Instance.UserInterface.AddBuildInspectorPanelAction(InspectorIds.MapView, OnBuildMapViewInspectorPanel);
+            }
+            catch (Exception e)
+            {
+                string s = $"Mod {Mod.ModInfo.Name} failed to initalize. Verify all depencencies installed and enabled";
+                Game.Instance.UserInterface.CreateMessageDialog(s);
+                Debug.LogException(e);
+                throw new FileNotFoundException(s);
+            }
         }
 
         private void DisableStockInspectors()
